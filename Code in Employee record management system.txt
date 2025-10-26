@@ -1,0 +1,541 @@
+package com.mycompany.oop;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
+import javax.swing.SwingWorker;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+class EmployeeFileReader extends SwingWorker<String, Void> {
+    private String filePath;
+
+    public EmployeeFileReader(String filePath) {
+        this.filePath = filePath;
+    }
+
+    @Override
+    protected String doInBackground() throws Exception {
+        StringBuilder content = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                content.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return content.toString();
+    }
+
+    @Override
+    protected void done() {
+        try {
+            String result = get();
+            // Assuming outputArea is a JTextArea instance
+            outputArea.setText(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static class outputArea {
+
+        private static void setText(String result) {
+            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        }
+
+        public outputArea() {
+        }
+    }
+}
+
+
+interface Department {
+    String getName();
+    int getCode();
+}
+
+class SalaryScale {
+    private static final Map<String, Map<Integer, Double>> salaryScales = new HashMap<>();
+
+    static {
+        Map<Integer, Double> managerScale = new HashMap<>();
+        managerScale.put(0, 50000.0);
+        managerScale.put(1, 55000.0);
+        managerScale.put(2, 60000.0);
+        salaryScales.put("Manager", managerScale);
+
+        Map<Integer, Double> employeeScale = new HashMap<>();
+        employeeScale.put(0, 30000.0);
+        employeeScale.put(1, 32000.0);
+        employeeScale.put(2, 34000.0);
+        salaryScales.put("Employee", employeeScale);
+    }
+
+    public static double getSalary(String designation, int experience) {
+        if (salaryScales.containsKey(designation)) {
+            Map<Integer, Double> scale = salaryScales.get(designation);
+            if (scale.containsKey(experience)) {
+                return scale.get(experience);
+            }
+        }
+        return 0.0;
+    }
+}
+
+class Person {
+    String name;
+    int id;
+}
+
+class Employee extends Person {
+    private String designation;
+    private int experience;
+    private double salary;
+
+    public Employee(String name, int id, String designation, int experience) {
+        this.name = name;
+        this.id = id;
+        this.designation = designation;
+        this.experience = experience;
+        this.salary = SalaryScale.getSalary(designation, experience);
+    }
+
+    public String getDesignation() {
+        return designation;
+    }
+
+    public int getExperience() {
+        return experience;
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+}
+
+class Manager extends Person {
+    public Manager(String name, int id) {
+        this.name = name;
+        this.id = id;
+    }
+}
+
+class DepartmentDetails implements Department {
+    String name;
+    int code;
+
+    public DepartmentDetails(String name, int code) {
+        this.name = name;
+        this.code = code;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public int getCode() {
+        return code;
+    }
+}
+
+class Assignment {
+    int employeeId;
+    int departmentId;
+
+    public Assignment(int employeeId, int departmentId) {
+        this.employeeId = employeeId;
+        this.departmentId = departmentId;
+    }
+
+    public int getEmployeeId() {
+        return employeeId;
+    }
+
+    public int getDepartmentId() {
+        return departmentId;
+    }
+}
+
+
+public class EmployeeManagementSystem extends JFrame {
+    static final String EMPLOYEE_FILE = "employees.txt";
+    static final String MANAGER_FILE = "managers.txt";
+    static final String DEPARTMENT_FILE = "departments.txt";
+    static final String ASSIGNMENT_FILE = "assignments.txt";
+
+    static final Map<String, String> userCredentials = new HashMap<>();
+
+    private CardLayout cardLayout = new CardLayout();
+    private JPanel mainPanel = new JPanel(cardLayout);
+
+    private JTextField usernameField = new JTextField(20);
+    private JPasswordField passwordField = new JPasswordField(20);
+    private JTextArea outputArea = new JTextArea(20, 40);
+
+    private JTextField managerNameField = new JTextField(20);
+    private JTextField managerIdField = new JTextField(20);
+
+    private JTextField employeeNameField = new JTextField(20);
+    private JTextField employeeIdField = new JTextField(20);
+    private JTextField employeeDesignationField = new JTextField(20);
+    private JTextField employeeExperienceField = new JTextField(20);
+
+    private JTextField departmentNameField = new JTextField(20);
+    private JTextField departmentCodeField = new JTextField(20);
+
+    private JTextField assignEmployeeIdField = new JTextField(20);
+    private JTextField assignDepartmentCodeField = new JTextField(20);
+
+    public EmployeeManagementSystem() {
+        userCredentials.put("admin", "admin123");
+
+        setTitle("Employee Management System");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(600, 800);
+
+        JPanel loginPanel = new JPanel(new GridLayout(3, 2));
+        loginPanel.add(new JLabel("Username:"));
+        loginPanel.add(usernameField);
+        loginPanel.add(new JLabel("Password:"));
+        loginPanel.add(passwordField);
+        JButton loginButton = new JButton("Login");
+        loginPanel.add(loginButton);
+        JButton userMenuButton = new JButton("User Menu");
+        loginPanel.add(userMenuButton);
+
+        loginButton.addActionListener(e -> authenticateUser());
+        userMenuButton.addActionListener(e -> cardLayout.show(mainPanel, "userMenu"));
+
+        JPanel adminMenu = new JPanel(new GridLayout(6, 1));
+        JButton addManagerButton = new JButton("Add Manager");
+        JButton deleteManagerButton = new JButton("Delete Manager");
+        JButton addEmployeeButton = new JButton("Add Employee");
+        JButton deleteEmployeeButton = new JButton("Delete Employee");
+        JButton addDepartmentButton = new JButton("Add Department");
+        JButton assignEmployeeButton = new JButton("Assign Employee");
+        adminMenu.add(addManagerButton);
+        adminMenu.add(deleteManagerButton);
+        adminMenu.add(addEmployeeButton);
+        adminMenu.add(deleteEmployeeButton);
+        adminMenu.add(addDepartmentButton);
+        adminMenu.add(assignEmployeeButton);
+
+        addManagerButton.addActionListener(e -> cardLayout.show(mainPanel, "addManager"));
+        deleteManagerButton.addActionListener(e -> deleteManager());
+        addEmployeeButton.addActionListener(e -> cardLayout.show(mainPanel, "addEmployee"));
+        deleteEmployeeButton.addActionListener(e -> deleteEmployee());
+        addDepartmentButton.addActionListener(e -> cardLayout.show(mainPanel, "addDepartment"));
+        assignEmployeeButton.addActionListener(e -> cardLayout.show(mainPanel, "assignEmployee"));
+
+        JPanel userMenu = new JPanel(new GridLayout(5, 1));
+        JButton viewManagersButton = new JButton("View Managers");
+        JButton viewEmployeesButton = new JButton("View Employees");
+        JButton viewDepartmentsButton = new JButton("View Departments");
+        JButton viewAssignmentsButton = new JButton("View Assignments");
+        JButton exitUserMenuButton = new JButton("Exit User Menu");
+        userMenu.add(viewManagersButton);
+        userMenu.add(viewEmployeesButton);
+        userMenu.add(viewDepartmentsButton);
+        userMenu.add(viewAssignmentsButton);
+        userMenu.add(exitUserMenuButton);
+
+        viewManagersButton.addActionListener(e -> viewManagersInformation());
+        viewEmployeesButton.addActionListener(e -> viewEmployeesInformation());
+        viewDepartmentsButton.addActionListener(e -> viewDepartmentDetails());
+        viewAssignmentsButton.addActionListener(e -> viewAssignmentDetails());
+        exitUserMenuButton.addActionListener(e -> cardLayout.show(mainPanel, "login"));
+
+        JPanel addManagerPanel = new JPanel(new GridLayout(3, 2));
+        addManagerPanel.add(new JLabel("Manager Name:"));
+        addManagerPanel.add(managerNameField);
+        addManagerPanel.add(new JLabel("Manager ID:"));
+        addManagerPanel.add(managerIdField);
+        JButton saveManagerButton = new JButton("Save Manager");
+        addManagerPanel.add(saveManagerButton);
+        saveManagerButton.addActionListener(e -> addManager());
+
+        JPanel addEmployeePanel = new JPanel(new GridLayout(5, 2));
+        addEmployeePanel.add(new JLabel("Employee Name:"));
+        addEmployeePanel.add(employeeNameField);
+        addEmployeePanel.add(new JLabel("Employee ID:"));
+        addEmployeePanel.add(employeeIdField);
+        addEmployeePanel.add(new JLabel("Designation:"));
+        addEmployeePanel.add(employeeDesignationField);
+        addEmployeePanel.add(new JLabel("Experience:"));
+        addEmployeePanel.add(employeeExperienceField);
+        JButton saveEmployeeButton = new JButton("Save Employee");
+        addEmployeePanel.add(saveEmployeeButton);
+        saveEmployeeButton.addActionListener(e -> addEmployee());
+
+        JPanel addDepartmentPanel = new JPanel(new GridLayout(3, 2));
+        addDepartmentPanel.add(new JLabel("Department Name:"));
+        addDepartmentPanel.add(departmentNameField);
+        addDepartmentPanel.add(new JLabel("Department Code:"));
+        addDepartmentPanel.add(departmentCodeField);
+        JButton saveDepartmentButton = new JButton("Save Department");
+        addDepartmentPanel.add(saveDepartmentButton);
+        saveDepartmentButton.addActionListener(e -> addDepartment());
+
+        JPanel assignEmployeePanel = new JPanel(new GridLayout(3, 2));
+        assignEmployeePanel.add(new JLabel("Employee ID:"));
+        assignEmployeePanel.add(assignEmployeeIdField);
+        assignEmployeePanel.add(new JLabel("Department Code:"));
+        assignEmployeePanel.add(assignDepartmentCodeField);
+        JButton saveAssignmentButton = new JButton("Save Assignment");
+        assignEmployeePanel.add(saveAssignmentButton);
+        saveAssignmentButton.addActionListener(e -> assignEmployee());
+
+        mainPanel.add(loginPanel, "login");
+        mainPanel.add(adminMenu, "adminMenu");
+        mainPanel.add(userMenu, "userMenu");
+        mainPanel.add(addManagerPanel, "addManager");
+        mainPanel.add(addEmployeePanel, "addEmployee");
+        mainPanel.add(addDepartmentPanel, "addDepartment");
+        mainPanel.add(assignEmployeePanel, "assignEmployee");
+
+        add(mainPanel);
+        cardLayout.show(mainPanel, "login");
+
+        JScrollPane scrollPane = new JScrollPane(outputArea);
+        add(scrollPane, BorderLayout.SOUTH);
+    }
+
+    private void authenticateUser() {
+        String username = usernameField.getText();
+        String password = new String(passwordField.getPassword());
+
+        if (userCredentials.containsKey(username) && userCredentials.get(username).equals(password)) {
+            cardLayout.show(mainPanel, "adminMenu");
+        } else {
+            JOptionPane.showMessageDialog(this, "Invalid username or password", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+
+   private void addManager() {
+    String name = managerNameField.getText();
+    int id = Integer.parseInt(managerIdField.getText());
+
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(MANAGER_FILE, true))) {
+        writer.write("Manager Name: " + name + "\n");
+        writer.write("Manager ID: " + id + "\n");
+        writer.write("\n");
+        JOptionPane.showMessageDialog(this, "Manager added successfully!");
+        
+        // After adding manager, switch to the next menu
+        cardLayout.show(mainPanel, "adminMenu");
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+private void deleteManager() {
+    String managerId = JOptionPane.showInputDialog(this, "Enter Manager ID to delete:");
+    if (managerId != null && !managerId.isEmpty()) {
+        try {
+            File inputFile = new File(MANAGER_FILE);
+            File tempFile = new File("managers_temp.txt");
+
+            BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+
+            String line;
+            boolean isManagerFound = false;
+
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("Manager ID: " + managerId)) {
+                    isManagerFound = true;
+                    // Skip next lines (name and blank line)
+                    reader.readLine();
+                    reader.readLine();
+                } else {
+                    writer.write(line + "\n");
+                }
+            }
+
+            writer.close();
+            reader.close();
+
+            if (isManagerFound) {
+                inputFile.delete();
+                tempFile.renameTo(inputFile);
+                JOptionPane.showMessageDialog(this, "Manager deleted successfully!");
+                
+                // After deleting manager, switch to the next menu
+                cardLayout.show(mainPanel, "adminMenu");
+            } else {
+                tempFile.delete();
+                JOptionPane.showMessageDialog(this, "Manager not found.");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+   private void addEmployee() {
+    String name = employeeNameField.getText();
+    int id = Integer.parseInt(employeeIdField.getText());
+    String designation = employeeDesignationField.getText();
+    int experience = Integer.parseInt(employeeExperienceField.getText());
+
+    Employee employee = new Employee(name, id, designation, experience);
+
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(EMPLOYEE_FILE, true))) {
+        writer.write("Employee Name: " + employee.name + "\n");
+        writer.write("Employee ID: " + employee.id + "\n");
+        writer.write("Designation: " + employee.getDesignation() + "\n");
+        writer.write("Experience: " + employee.getExperience() + "\n");
+        writer.write("Salary: " + employee.getSalary() + "\n");
+        writer.write("\n");
+        JOptionPane.showMessageDialog(this, "Employee added successfully!");
+
+        // Switch to the next panel here
+        cardLayout.show(mainPanel, "adminMenu"); // Assuming you want to go back to the admin menu
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+
+    private void deleteEmployee() {
+        String employeeId = JOptionPane.showInputDialog(this, "Enter Employee ID to delete:");
+        if (employeeId != null && !employeeId.isEmpty()) {
+            try {
+                File inputFile = new File(EMPLOYEE_FILE);
+                File tempFile = new File("employees_temp.txt");
+
+                BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+                BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+
+                String line;
+                boolean isEmployeeFound = false;
+
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains("Employee ID: " + employeeId)) {
+                        isEmployeeFound = true;
+                        // Skip next lines (name, designation, experience, salary and blank line)
+                        for (int i = 0; i < 5; i++) {
+                            reader.readLine();
+                        }
+                    } else {
+                        writer.write(line + "\n");
+                    }
+                }
+
+                writer.close();
+                reader.close();
+
+                if (isEmployeeFound) {
+                    inputFile.delete();
+                    tempFile.renameTo(inputFile);
+                    JOptionPane.showMessageDialog(this, "Employee deleted successfully!");
+                } else {
+                    tempFile.delete();
+                    JOptionPane.showMessageDialog(this, "Employee not found.");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void addDepartment() {
+    String name = departmentNameField.getText();
+    int code = Integer.parseInt(departmentCodeField.getText());
+
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(DEPARTMENT_FILE, true))) {
+        writer.write("Department Name: " + name + "\n");
+        writer.write("Department Code: " + code + "\n");
+        writer.write("\n");
+        JOptionPane.showMessageDialog(this, "Department added successfully!");
+        
+        // After adding department, switch to the next menu
+        cardLayout.show(mainPanel, "adminMenu");
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+
+    private void assignEmployee() {
+    int employeeId = Integer.parseInt(assignEmployeeIdField.getText());
+    int departmentId = Integer.parseInt(assignDepartmentCodeField.getText());
+
+    Assignment assignment = new Assignment(employeeId, departmentId);
+
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(ASSIGNMENT_FILE, true))) {
+        writer.write("Employee ID: " + assignment.getEmployeeId() + "\n");
+        writer.write("Department ID: " + assignment.getDepartmentId() + "\n");
+        writer.write("\n");
+        JOptionPane.showMessageDialog(this, "Employee assigned to department successfully!");
+        
+        // After assigning employee, switch to the next menu
+        cardLayout.show(mainPanel, "adminMenu");
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+
+
+
+    private void viewManagersInformation() {
+        outputArea.setText("");
+        try (BufferedReader reader = new BufferedReader(new FileReader(MANAGER_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                outputArea.append(line + "\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+  private void viewEmployeesInformation() {
+    outputArea.setText("Loading...");
+    EmployeeFileReader employeeFileReader = new EmployeeFileReader(EMPLOYEE_FILE);
+    employeeFileReader.execute();
+}
+
+
+    private void viewDepartmentDetails() {
+        outputArea.setText("");
+        try (BufferedReader reader = new BufferedReader(new FileReader(DEPARTMENT_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                outputArea.append(line + "\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void viewAssignmentDetails() {
+        outputArea.setText("");
+        try (BufferedReader reader = new BufferedReader(new FileReader(ASSIGNMENT_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                outputArea.append(line + "\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            EmployeeManagementSystem app = new EmployeeManagementSystem();
+            app.setVisible(true);
+        });
+    }
+}
